@@ -96,6 +96,9 @@ function App() {
             <Route path="/prediction" element={user === 'hr' ? <Prediction /> : <Navigate to="/" />} />
             <Route path="/export" element={user === 'hr' ? <WorkSafeBCExport /> : <Navigate to="/" />} />
           </Routes>
+          <footer style={{ textAlign: 'center', padding: '20px', color: '#7f8c8d', fontSize: '12px' }}>
+  © 2026 SafeSight Intelligence | Final Research Framework | Fairmont Waterfront Data Analysis
+</footer>
         </div>
       </div>
     </Router>
