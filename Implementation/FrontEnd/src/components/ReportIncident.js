@@ -17,16 +17,50 @@ function ReportIncident() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Convert booleans to 1/0 for your TINYINT columns before sending to BackEnd
+    
+    // Convert booleans to 1/0 for TINYINT columns and prepare data
     const submissionData = {
       ...formData,
       ppe_worn: formData.ppe_worn ? 1 : 0,
       hospitalized: formData.hospitalized ? 1 : 0
     };
-    
-    console.log("Submitting Research Data:", submissionData);
-    // You will later use fetch() here to post to your Node.js endpoint
-    alert("Incident Logged for Advanced Analysis");
+
+    console.log("Attempting to submit to backend:", submissionData);
+
+    try {
+      // Fetch request to your Node.js backend
+      const response = await fetch('http://localhost:5000/api/incidents', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submissionData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert("Incident Logged for Advanced Analysis!");
+        console.log("Success:", result);
+        
+        // Optional: Reset form after successful submission
+        setFormData({
+          ...formData,
+          work_area: '',
+          incident_datetime: '',
+          description: '',
+          root_cause: '',
+          ppe_worn: false,
+          hospitalized: false
+        });
+      } else {
+        const errorData = await response.json();
+        console.error("Server Error:", errorData);
+        alert(`Failed to log incident: ${errorData.message || 'Database error'}`);
+      }
+    } catch (error) {
+      console.error("Network Error:", error);
+      alert("Could not connect to the server. Please ensure your backend is running on port 5000.");
+    }
   };
 
   const labelStyle = { display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#2c3e50', fontSize: '14px' };
@@ -42,8 +76,14 @@ function ReportIncident() {
         {/* Row 1: Department and Work Area */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div>
-            <label style={labelStyle}>Department</label>
-            <select style={inputStyle} value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})}>
+            <label htmlFor="department" style={labelStyle}>Department</label>
+            <select 
+              id="department"
+              name="department"
+              style={inputStyle} 
+              value={formData.department} 
+              onChange={(e) => setFormData({...formData, department: e.target.value})}
+            >
               <option>Housekeeping</option>
               <option>F&B (Kitchen)</option>
               <option>Front Office</option>
@@ -55,8 +95,10 @@ function ReportIncident() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Specific Work Area</label>
+            <label htmlFor="work_area" style={labelStyle}>Specific Work Area</label>
             <input 
+              id="work_area"
+              name="work_area"
               type="text" 
               style={inputStyle} 
               placeholder="e.g. Lobby, Kitchen Line, Room 402"
@@ -69,8 +111,14 @@ function ReportIncident() {
         {/* Row 2: Shift and Date/Time */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div>
-            <label style={labelStyle}>Shift</label>
-            <select style={inputStyle} value={formData.shift} onChange={(e) => setFormData({...formData, shift: e.target.value})}>
+            <label htmlFor="shift" style={labelStyle}>Shift</label>
+            <select 
+              id="shift"
+              name="shift"
+              style={inputStyle} 
+              value={formData.shift} 
+              onChange={(e) => setFormData({...formData, shift: e.target.value})}
+            >
               <option>Morning</option>
               <option>Afternoon</option>
               <option>Night</option>
@@ -78,10 +126,13 @@ function ReportIncident() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Incident Date & Time</label>
+            <label htmlFor="incident_datetime" style={labelStyle}>Incident Date & Time</label>
             <input 
+              id="incident_datetime"
+              name="incident_datetime"
               type="datetime-local" 
               style={inputStyle} 
+              value={formData.incident_datetime}
               onChange={(e) => setFormData({...formData, incident_datetime: e.target.value})} 
               required 
             />
@@ -91,8 +142,14 @@ function ReportIncident() {
         {/* Row 3: Type and Severity */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div>
-            <label style={labelStyle}>Incident Type</label>
-            <select style={inputStyle} value={formData.incident_type} onChange={(e) => setFormData({...formData, incident_type: e.target.value})}>
+            <label htmlFor="incident_type" style={labelStyle}>Incident Type</label>
+            <select 
+              id="incident_type"
+              name="incident_type"
+              style={inputStyle} 
+              value={formData.incident_type} 
+              onChange={(e) => setFormData({...formData, incident_type: e.target.value})}
+            >
               <option>Slip/Fall</option>
               <option>Strain/Sprain</option>
               <option>Cut/Laceration</option>
@@ -102,8 +159,14 @@ function ReportIncident() {
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Severity Level</label>
-            <select style={inputStyle} value={formData.severity} onChange={(e) => setFormData({...formData, severity: e.target.value})}>
+            <label htmlFor="severity" style={labelStyle}>Severity Level</label>
+            <select 
+              id="severity"
+              name="severity"
+              style={inputStyle} 
+              value={formData.severity} 
+              onChange={(e) => setFormData({...formData, severity: e.target.value})}
+            >
               <option>Low</option>
               <option>Medium</option>
               <option>High</option>
@@ -112,28 +175,42 @@ function ReportIncident() {
           </div>
         </div>
 
-        <label style={labelStyle}>Detailed Description</label>
+        <label htmlFor="description" style={labelStyle}>Detailed Description</label>
         <textarea 
+          id="description"
+          name="description"
           style={{...inputStyle, height: '80px', resize: 'vertical'}} 
           placeholder="Describe exactly what happened..." 
+          value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})} 
         />
 
-        <label style={labelStyle}>Initial Root Cause Assessment</label>
+        <label htmlFor="root_cause" style={labelStyle}>Initial Root Cause Assessment</label>
         <input 
+          id="root_cause"
+          name="root_cause"
           type="text" 
           style={inputStyle} 
           placeholder="e.g. Missing wet floor sign, improper lifting technique"
+          value={formData.root_cause}
           onChange={(e) => setFormData({...formData, root_cause: e.target.value})} 
         />
 
         <div style={{ display: 'flex', gap: '40px', marginBottom: '30px', backgroundColor: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px' }}>
-            <input type="checkbox" checked={formData.ppe_worn} onChange={(e) => setFormData({...formData, ppe_worn: e.target.checked})} />
+            <input 
+              type="checkbox" 
+              checked={formData.ppe_worn} 
+              onChange={(e) => setFormData({...formData, ppe_worn: e.target.checked})} 
+            />
             Was PPE being used?
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px' }}>
-            <input type="checkbox" checked={formData.hospitalized} onChange={(e) => setFormData({...formData, hospitalized: e.target.checked})} />
+            <input 
+              type="checkbox" 
+              checked={formData.hospitalized} 
+              onChange={(e) => setFormData({...formData, hospitalized: e.target.checked})} 
+            />
             Immediate Hospitalization?
           </label>
         </div>
