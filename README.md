@@ -1,89 +1,75 @@
-# W26_4495_S2_SandaliS
+SafeSight Intelligence: Workplace Safety Forecasting
+A Case Study for Fairmont Waterfront Hotel
 
-# SafeSight Work Safety Dashboard
+SafeSight is a professional 3-tier safety management system designed to transition workplace safety from reactive reporting to proactive forecasting. It integrates Machine Learning (Random Forest) to predict departmental risks and features a secure Role-Based Access Control (RBAC) system.
 
-A full-stack Work Safety Monitoring and Predictive Analytics system developed as a case study for Fairmont Waterfront Hotel. It tracks workplace safety incidents, visualizes key metrics through an interactive dashboard, and predicts department-level safety risk using historical data.
+## System Architecture
+SafeSight has evolved into a microservices-oriented architecture:
 
-## Phase 1 Progress
-- Repository structure established.
-- Backend environment initialized with Node.js and Express.
-- Initial data preparation started in `/Misc/safesight_data_preparation.ipynb`.
-- Database schema designed for incident tracking.
+Presentation Layer: Developed in React.js, featuring a role-specific UI.
 
-## Installation & Setup
-Follow these instructions to configure the local development environment and run the full-stack demo.
+Application Layer (API Gateway): A Node.js/Express server bridging the UI, Database, and AI services.
 
+Intelligence Layer (AI Service): A Python/Flask microservice running a Random Forest Classifier for risk prediction.
+
+Data Layer: MySQL relational database for secure storage of incident records.
+
+## Phase 2 & 3 Progress (Completed)
+AI Integration: Successfully deployed a Python Flask service for real-time risk forecasting.
+
+Predictive Modeling: Implemented a Random Forest algorithm to analyze 391+ historical records.
+
+RBAC Security: Established secure routing in React to differentiate between HR Personnel and Department Managers.
+
+Service Bridging: Implemented an Axios-based API gateway in Node.js to connect JS and Python environments.
+
+🔧 Installation & Setup
 1. Prerequisites
-Node.js (v16.0 or higher)
+Node.js (v16+) & NPM
 
-MySQL Server (v8.0 or higher)
+Python (v3.9+) & Pip
 
-NPM (Node Package Manager)
+MySQL Server (v8.0+)
 
-2. Database Configuration
-The system relies on a relational MySQL schema to process complex safety metrics.
+2. Service Orchestration
+To run the full-stack environment, start the following three services in separate terminals:
 
-Open MySQL Workbench and connect to your local instance.
+Terminal 1: AI Intelligence Service
 
-Create the project database:
-
-SQL
-CREATE DATABASE safesight_db;
-Import the provided SQL dump file (located in the /database folder) to populate the 391 records, including severity tiers and hospitalization data.
-
-Ensure your incidents table structure matches the defined schema.
-
-3. Backend Implementation (Node.js)
-The backend acts as a RESTful API bridge between the MySQL database and the React UI.
-
-Navigate to the backend directory:
+Bash
+cd AI_Service
+python -m venv venv
+# Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python predict.py
+Terminal 2: Node.js Backend API
 
 Bash
 cd BackEnd
-Install required dependencies (Express, MySQL, CORS):
-
-Bash
 npm install
-Configure your database credentials in server.js.
-
-Start the server:
-
-Bash
 node server.js
-Success Indicator: Terminal should display: 🚀 Server started on port 5000.
-
-4. Frontend Implementation (React.js)
-The frontend uses Recharts to visualize data-driven safety insights.
-
-Open a new terminal window and navigate to the frontend directory:
+Terminal 3: React Frontend UI
 
 Bash
 cd FrontEnd
-Install dependencies:
-
-Bash
 npm install
-Launch the application:
-
-Bash
 npm start
-Access: The dashboard will be available at http://localhost:3000.
 
-Data Verification: Confirm the Total Incidents (391) and Critical Risks (380) metrics are correctly populated from the backend.
+## Feature Highlights
+Predictive Analytics: HR-exclusive "Analytics" tab providing probability scores for potential incidents.
 
-Feature Highlights
-Executive Dashboard: Real-time KPI cards for hospitalizations (345 cases) and high-risk probabilities.
-Departmental Risk Profile: Data-driven bar charts identifying Housekeeping and Food & Beverage as the highest-risk sectors.
-Severity Distribution: Categorization of 391 incidents into Critical, High, Medium, and Low tiers.
-Incident Velocity Trend: Time-series analysis tracking safety trends across a 12-month period.
+Role-Based Access: Manager-specific views for "Log Incident" and HR-specific views for "Compliance & Analytics."
 
-Tech Stack
-Frontend: React.js, Recharts, CSS3
-Backend: Node.js, Express
-Database: MySQL
-Design Framework: AIDA (Attention, Interest, Desire, Action)
+Data Encoding: Automated preprocessing of categorical data (Shifts/Departments) for ML training.
 
-📅 Project Roadmap
-Phase 1 (Completed): Full-stack integration and historical data visualization.
-Phase 2 (Ongoing): Implementation of WorkSafeBC Form 7 automated document generation.
-Phase 3 (Upcoming): AI-driven predictive modeling for proactive hazard detection.
+Interactive Dashboard: Real-time KPI cards for hospitalizations and severity tiers using Recharts.
+
+
+## Final Project Roadmap
+[ ] Phase 4 (Final): Implementation of WorkSafeBC Form 7 automated document generation.
+
+[ ] Feedback Implementation: Integration of an AI Safety Chatbot for real-time protocol guidance.
+
+[ ] System Hardening: Final security audit and data validation.
+
+© 2026 SafeSight Intelligence | Final Research Framework | Fairmont Waterfront
