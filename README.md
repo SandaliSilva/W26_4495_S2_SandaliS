@@ -1,4 +1,4 @@
-SafeSight Intelligence: Workplace Safety Forecasting
+## SafeSight Intelligence: Workplace Safety Forecasting
 A Case Study for Fairmont Waterfront Hotel
 
 SafeSight is a professional 3-tier safety management system designed to transition workplace safety from reactive reporting to proactive forecasting. It integrates Machine Learning (Random Forest) to predict departmental risks and features a secure Role-Based Access Control (RBAC) system.

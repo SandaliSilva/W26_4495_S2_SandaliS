@@ -97,6 +97,7 @@ function App() {
             <Route path="/report" element={user === 'manager' ? <ReportIncident /> : <Navigate to="/dashboard" />} />
             <Route path="/prediction" element={user === 'hr' ? <Prediction /> : <Navigate to="/dashboard" />} />
             <Route path="/export" element={user === 'hr' ? <WorkSafeBCExport /> : <Navigate to="/dashboard" />} />
+            <Route path="/export-compliance" element={<WorkSafeBCExport />} />
           </Routes>
         </div>
 

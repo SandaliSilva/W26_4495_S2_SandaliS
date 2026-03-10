@@ -1,0 +1,69 @@
+const { PDFDocument } = require('pdf-lib');
+const fs = require('fs');
+const path = require('path');
+
+const generateWSBCReport = (db) => async (req, res) => {
+  const incidentId = req.params.id;
+
+  // 1. Fetch using your correct column name: incident_id
+  const sql = "SELECT * FROM incidents WHERE incident_id = ?";
+  
+  db.query(sql, [incidentId], async (err, results) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+    if (results.length === 0) return res.status(404).json({ message: "Incident not found" });
+
+    const data = results[0];
+
+    try {
+      const templatePath = path.join(__dirname, '../assets/wsbc_template.pdf');
+      const existingPdfBytes = fs.readFileSync(templatePath);
+      
+      // Load with encryption bypass
+      const pdfDoc = await PDFDocument.load(existingPdfBytes, { ignoreEncryption: true });
+      const form = pdfDoc.getForm();
+
+      // XFA forms require us to be very specific. 
+      // If getTextField fails, we catch it so the whole PDF still generates.
+      const fillField = (name, value) => {
+        try {
+          const field = form.getTextField(name);
+          field.setText(value ? String(value) : '');
+        } catch (e) {
+          console.warn(`Could not fill field: ${name}. It might be a checkbox or hidden.`);
+        }
+      };
+
+      // --- THE MAPPING (XFA PATHS) ---
+      // Section 3: Location and Date
+      fillField('topmostSubform[0].Page1[0].Address[0]', data.work_area);
+      
+      const formattedDate = data.incident_datetime 
+        ? new Date(data.incident_datetime).toISOString().split('T')[0] 
+        : '';
+      fillField('topmostSubform[0].Page1[0].Date[0]', formattedDate);
+
+      // Section 5: Narrative
+      fillField('topmostSubform[0].Page1[0].Description[0]', data.description);
+
+      // --- CHECKBOXES (XFA requires getCheckBox) ---
+      try {
+        if (data.severity === 'Critical' || data.severity === 'High') {
+          form.getCheckBox('topmostSubform[0].Page1[0].SeriousInjury[0]').check();
+        }
+      } catch (e) { /* Checkbox not found */ }
+
+      // 4. Finalize
+      const pdfBytes = await pdfDoc.save();
+
+      res.contentType("application/pdf");
+      res.setHeader('Content-Disposition', `attachment; filename=WSBC_Report_${incidentId}.pdf`);
+      res.send(Buffer.from(pdfBytes));
+
+    } catch (pdfError) {
+      console.error("PDF Error:", pdfError);
+      res.status(500).send("Error processing XFA PDF Template");
+    }
+  });
+};
+
+module.exports = { generateWSBCReport };
