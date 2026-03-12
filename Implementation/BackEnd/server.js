@@ -97,8 +97,11 @@ app.get('/api/ai-forecast', async (req, res) => {
 app.get('/', (req, res) => res.send('SafeSight Backend is running!'));
 
 // --- 5. Compliance Automation: PDF Generation ---
-// This route will trigger the PDF download
-app.get('/api/reports/generate/:id', generateWSBCReport(db));
+// FIX: Change this line to pass the function reference only
+app.get('/api/reports/generate/:id', (req, res, next) => {
+    req.db = db; // Attach the database pool to the request
+    next();
+}, generateWSBCReport);
 // --- Get All Incidents for Export Table ---
 app.get('/api/incidents', (req, res) => {
     const sql = "SELECT * FROM incidents ORDER BY incident_datetime DESC";
