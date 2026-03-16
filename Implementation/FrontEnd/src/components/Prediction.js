@@ -24,7 +24,7 @@ const Prediction = () => {
         <div style={{ padding: '30px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'Arial' }}>
             <header style={{ marginBottom: '40px', borderBottom: '2px solid #d4af37', paddingBottom: '10px' }}>
                 <h1 style={{ color: '#1a2a3a', margin: 0 }}>SafeSight AI: Predictive Risk Engine</h1>
-                <p style={{ color: '#7f8c8d' }}>Objective 3: Random Forest Classifier Analysis (Python/Flask)</p>
+                <p style={{ color: '#7f8c8d' }}>Random Forest Classifier Analysis</p>
             </header>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '25px' }}>
