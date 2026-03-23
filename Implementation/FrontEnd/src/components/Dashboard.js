@@ -1,127 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, 
-  PieChart, Pie, Cell, AreaChart, Area, Legend 
-} from 'recharts';
+import axios from 'axios';
+import SafeSightLayout from './SafeSightLayout';
+import OperationalView from './OperationalView'; // We will create this
+import IntelligenceView from './IntelligenceView'; // We will create this
 
-function Dashboard({ role }) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+function Dashboard() {
+    const [view, setView] = useState('ops'); // 'ops' or 'intel'
+    const [data, setData] = useState(null);
+    const [aiPredictions, setAiPredictions] = useState([]);
+    const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-    fetch('http://localhost:5000/api/dashboard-stats')
-      .then(res => res.json())
-      .then(result => {
-        // We log it here so you can see the "truth" in the F12 Console
-        console.log("Dashboard Data Received:", result);
-        setData(result); 
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Fetch Error:", err);
-        setLoading(false);
-      });
-  }, []);
+    useEffect(() => {
+    const fetchData = async () => {
+        try {
+            // Fetch Stats (Node.js)
+            const statsRes = await axios.get('http://localhost:5000/api/dashboard-stats');
+            setData(statsRes.data);
 
-  // Loading state with a polished look
-  if (loading || !data) {
+            // Fetch AI (Python) - Wrapped in its own try/catch so it doesn't break everything
+            try {
+                const aiRes = await axios.get('http://localhost:5000/api/ai-forecast');
+                setAiPredictions(aiRes.data);
+            } catch (aiErr) {
+                console.warn("AI Engine is offline, using placeholder advice.");
+                setAiPredictions([]); 
+            }
+
+            setLoading(false);
+        } catch (err) {
+            console.error("FATAL ERROR: Backend (Port 5000) is likely offline.", err);
+            // Don't set loading to false here, or show an "Error Screen" component
+        }
+    };
+    fetchData();
+}, []);
+
+    if (loading || !data) return <div style={{textAlign: 'center', padding: '100px'}}>Loading SafeSight...</div>;
+
     return (
-      <div style={{ padding: '100px', textAlign: 'center', color: '#1a2a3a', fontFamily: 'Arial' }}>
-        <h2>Loading SafeSight Intelligence...</h2>
-        <p>Connecting to secure database on port 5000</p>
-      </div>
+        <SafeSightLayout title="SafeSight Command Center" subtitle={view === 'ops' ? "Operational Control" : "AI Strategic Intelligence"}>
+            
+            {/* SUB-NAVBAR */}
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                <button 
+                    onClick={() => setView('ops')}
+                    style={{ 
+                        padding: '10px 20px', cursor: 'pointer', border: 'none', borderRadius: '8px',
+                        background: view === 'ops' ? '#1a2a3a' : 'transparent',
+                        color: view === 'ops' ? '#fff' : '#7f8c8d',
+                        fontWeight: 'bold', transition: '0.3s'
+                    }}
+                >
+                    📋 Operations
+                </button>
+                <button 
+                    onClick={() => setView('intel')}
+                    style={{ 
+                        padding: '10px 20px', cursor: 'pointer', border: 'none', borderRadius: '8px',
+                        background: view === 'intel' ? '#1a2a3a' : 'transparent',
+                        color: view === 'intel' ? '#fff' : '#7f8c8d',
+                        fontWeight: 'bold', transition: '0.3s'
+                    }}
+                >
+                    🧠 AI Intelligence
+                </button>
+            </div>
+
+            {/* CONDITIONAL RENDERING */}
+            {view === 'ops' ? (
+                <OperationalView data={data} />
+            ) : (
+                <IntelligenceView data={data} aiPredictions={aiPredictions} />
+            )}
+
+        </SafeSightLayout>
     );
-  }
-
-  const COLORS = ['#d4af37', '#1a2a3a', '#27ae60', '#e74c3c', '#f39c12', '#8e44ad'];
-
-  return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px', backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-      <header style={{ marginBottom: '30px', borderLeft: '8px solid #d4af37', paddingLeft: '20px' }}>
-        <h1 style={{ color: '#1a2a3a', margin: 0 }}>SafeSight Intelligence Analytics</h1>
-        <p style={{ color: '#7f8c8d' }}>Fairmont Waterfront | Research Access: {role?.toUpperCase() || 'MANAGER'}</p>
-      </header>
-
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', marginBottom: '30px' }}>
-        <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ color: '#7f8c8d', margin: '0 0 10px 0', fontSize: '14px' }}>TOTAL INCIDENTS</h4>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', margin: 0, color: '#1a2a3a' }}>
-            {data.stats?.totalIncidents || 0}
-          </p>
-        </div>
-        <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ color: '#7f8c8d', margin: '0 0 10px 0', fontSize: '14px' }}>CRITICAL RISKS</h4>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', margin: 0, color: '#e74c3c' }}>
-            {data.stats?.criticalRisks || 0}
-          </p>
-        </div>
-        <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ color: '#7f8c8d', margin: '0 0 10px 0', fontSize: '14px' }}>HOSPITALIZATION</h4>
-          <p style={{ fontSize: '36px', fontWeight: 'bold', margin: 0, color: '#2980b9' }}>
-            {data.stats?.hospitalization || 0}
-          </p>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
-        
-        {/* 1. Incident Severity Mix (Pie Chart) */}
-        <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ color: '#1a2a3a', marginBottom: '20px' }}>Severity Distribution</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie 
-                data={data.severityData || []} 
-                dataKey="value" 
-                nameKey="name" 
-                cx="50%" 
-                cy="50%" 
-                outerRadius={80} 
-                innerRadius={40} // Added donut style for a more modern look
-                label
-              >
-                {(data.severityData || []).map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* 2. Incident Velocity Trend (Area Chart) */}
-        <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ color: '#1a2a3a', marginBottom: '20px' }}>Incident Velocity Trend</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={data.trendData || []}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" /> 
-              <YAxis />
-              <Tooltip />
-              <Area type="monotone" dataKey="value" stroke="#d4af37" fill="#d4af37" fillOpacity={0.3} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* 3. Departmental Risk Profile (Bar Chart) */}
-        <div style={{ background: '#fff', padding: '25px', borderRadius: '12px', gridColumn: 'span 2', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
-          <h3 style={{ color: '#1a2a3a', marginBottom: '20px' }}>Departmental Risk Profile</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data.departmentData || []}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tick={{fontSize: 12, fill: '#7f8c8d'}} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="value" fill="#1a2a3a" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-      </div>
-    </div>
-  );
 }
 
 export default Dashboard;

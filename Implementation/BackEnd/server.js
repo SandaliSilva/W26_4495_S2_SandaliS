@@ -16,7 +16,7 @@ const db = mysql.createPool({
     user: 'root',
     password: '@Umnotinto23', 
     database: 'safesight_db'
-}).promise(); // <--- ADD .promise() HERE to make the Excel route work!
+}).promise(); 
 
 // --- 1. Incident Logging Route ---
 app.post('/api/incidents', async (req, res) => {
@@ -41,50 +41,10 @@ app.post('/api/incidents', async (req, res) => {
     }
 });
 
-// // --- 2. Full Dashboard Stats Route ---
-// app.get('/api/dashboard-stats', async (req, res) => {
-//     try {
-//         const summaryQuery = `
-//             SELECT 
-//                 COUNT(*) as totalIncidents,
-//                 SUM(CASE WHEN severity IN ('Critical', 'High') THEN 1 ELSE 0 END) as criticalRisks,
-//                 SUM(CASE WHEN hospitalized = 1 THEN 1 ELSE 0 END) as hospitalization
-//             FROM incidents`;
-
-//         const severityQuery = `SELECT severity as name, COUNT(*) as value FROM incidents GROUP BY severity`;
-//         const departmentQuery = `SELECT department as name, COUNT(*) as value FROM incidents GROUP BY department`;
-        
-//         const trendQuery = `
-//             SELECT 
-//                 DATE_FORMAT(incident_datetime, '%b') as name, 
-//                 COUNT(*) as value 
-//             FROM incidents 
-//             GROUP BY name, MONTH(incident_datetime)
-//             ORDER BY MONTH(incident_datetime) ASC`;
-
-//         const [summary] = await db.query(summaryQuery);
-//         const [severityData] = await db.query(severityQuery);
-//         const [deptData] = await db.query(departmentQuery);
-//         const [trendData] = await db.query(trendQuery);
-
-//         res.json({
-//             stats: {
-//                 totalIncidents: summary[0].totalIncidents || 0,
-//                 criticalRisks: summary[0].criticalRisks || 0,
-//                 hospitalization: summary[0].hospitalization || 0
-//             },
-//             severityData,
-//             departmentData,
-//             trendData
-//         });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
-
-// --- 2. Full Dashboard Stats Route (Fixed for Promises) ---
+// --- 2. Full Dashboard Stats Route (UPDATED FOR ADVANCED CHARTS) ---
 app.get('/api/dashboard-stats', async (req, res) => {
     try {
+        // Query A: KPI Summary
         const summaryQuery = `
             SELECT 
                 COUNT(*) as totalIncidents,
@@ -92,9 +52,21 @@ app.get('/api/dashboard-stats', async (req, res) => {
                 SUM(CASE WHEN hospitalized = 1 THEN 1 ELSE 0 END) as hospitalization
             FROM incidents`;
 
+        // Query B: Severity Mix (Pie Chart)
         const severityQuery = `SELECT severity as name, COUNT(*) as value FROM incidents GROUP BY severity`;
-        const departmentQuery = `SELECT department as name, COUNT(*) as value FROM incidents GROUP BY department`;
         
+        // Query C: ADVANCED Department Breakdown (Stacked Bar, Radar, Scatter)
+        const departmentQuery = `
+            SELECT 
+                department as name, 
+                SUM(CASE WHEN severity = 'Critical' THEN 1 ELSE 0 END) as Critical,
+                SUM(CASE WHEN severity = 'High' THEN 1 ELSE 0 END) as High,
+                SUM(CASE WHEN severity IN ('Medium', 'Low') THEN 1 ELSE 0 END) as Low,
+                COUNT(*) as total
+            FROM incidents 
+            GROUP BY department`;
+        
+        // Query D: Trends over time (Area Chart)
         const trendQuery = `
             SELECT 
                 DATE_FORMAT(incident_datetime, '%b') as name, 
@@ -103,22 +75,38 @@ app.get('/api/dashboard-stats', async (req, res) => {
             GROUP BY name, MONTH(incident_datetime)
             ORDER BY MONTH(incident_datetime) ASC`;
 
-        // We run all queries in parallel for speed
-        const [summary] = await db.query(summaryQuery);
-        const [severityData] = await db.query(severityQuery);
-        const [deptData] = await db.query(departmentQuery);
-        const [trendData] = await db.query(trendQuery);
+        // Query E: Recent Observations (Expanded to 15 for Operational View)
+        const recentQuery = `
+            SELECT incident_id, department, incident_type, severity, status 
+            FROM incidents 
+            ORDER BY incident_datetime DESC 
+            LIMIT 15`;
 
-        // Send the response back to React
+        // Execute all queries in parallel for speed
+        const [
+            [[summary]], 
+            [severityData], 
+            [deptData], 
+            [trendData], 
+            [recentIncidents]
+        ] = await Promise.all([
+            db.query(summaryQuery),
+            db.query(severityQuery),
+            db.query(departmentQuery),
+            db.query(trendQuery),
+            db.query(recentQuery)
+        ]);
+
         res.json({
             stats: {
-                totalIncidents: summary[0].totalIncidents || 0,
-                criticalRisks: summary[0].criticalRisks || 0,
-                hospitalization: summary[0].hospitalization || 0
+                totalIncidents: summary.totalIncidents || 0,
+                criticalRisks: summary.criticalRisks || 0,
+                hospitalization: summary.hospitalization || 0
             },
             severityData: severityData || [],
-            departmentData: deptData || [],
-            trendData: trendData || []
+            departmentData: deptData || [], // Now contains Critical/High/Low keys
+            trendData: trendData || [],
+            recentIncidents: recentIncidents || []
         });
 
     } catch (err) {
@@ -133,11 +121,12 @@ app.get('/api/ai-forecast', async (req, res) => {
         const response = await axios.get('http://127.0.0.1:5001/ai/predict-risk');
         res.json(response.data);
     } catch (error) {
+        console.error("AI Engine Offline");
         res.status(500).json({ error: "Predictive engine is offline." });
     }
 });
 
-// --- 4. Compliance Automation: PDF & Incidents ---
+// --- 4. Get All Incidents (List View) ---
 app.get('/api/incidents', async (req, res) => {
     try {
         const [results] = await db.query("SELECT * FROM incidents ORDER BY incident_datetime DESC");
@@ -147,12 +136,13 @@ app.get('/api/incidents', async (req, res) => {
     }
 });
 
+// --- 5. PDF Report Generation ---
 app.get('/api/reports/generate/:id', (req, res, next) => {
-    req.db = db; // Attach the promise-based pool
+    req.db = db; 
     next();
 }, generateWSBCReport);
 
-// --- 5. Excel Export Route ---
+// --- 6. Excel Export Route ---
 app.get('/api/reports/export-excel', async (req, res) => {
     try {
         const [rows] = await db.query("SELECT * FROM incidents ORDER BY incident_datetime DESC");
@@ -193,7 +183,22 @@ app.get('/api/reports/export-excel', async (req, res) => {
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
+        console.error("Excel Export Error:", error);
         res.status(500).send("Failed to export Excel file");
+    }
+});
+
+// --- 7. Update Incident Status ---
+app.patch('/api/incidents/:id/status', async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body; 
+
+    try {
+        await db.query("UPDATE incidents SET status = ? WHERE incident_id = ?", [status, id]);
+        res.json({ message: `Incident #${id} marked as ${status}` });
+    } catch (err) {
+        console.error("❌ Update Error:", err);
+        res.status(500).json({ error: "Failed to update incident status" });
     }
 });
 
