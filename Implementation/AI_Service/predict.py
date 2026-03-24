@@ -5,11 +5,13 @@ from flask_cors import CORS
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 import numpy as np
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app)
 
-engine = create_engine('mysql+mysqlconnector://root:@Umnotinto23@localhost/safesight_db')
+password = urllib.parse.quote_plus('@Umnotinto23')
+engine = create_engine(f'mysql+mysqlconnector://root:{password}@localhost/safesight_db')
 
 @app.route('/ai/predict-risk', methods=['GET'])
 def predict_future():

@@ -3,7 +3,7 @@ import {
     PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, 
     XAxis, YAxis, Tooltip, Radar, RadarChart, PolarGrid, 
     PolarAngleAxis, PolarRadiusAxis, BarChart, Bar, Legend, 
-    CartesianGrid, ScatterChart, Scatter, ZAxis
+    CartesianGrid, ScatterChart, Scatter, ZAxis 
 } from 'recharts';
 
 const COLORS = ['#e74c3c', '#f39c12', '#27ae60', '#3498db', '#9b59b6'];
