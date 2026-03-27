@@ -64,6 +64,8 @@ Data Encoding: Automated preprocessing of categorical data (Shifts/Departments) 
 
 Interactive Dashboard: Real-time KPI cards for hospitalizations and severity tiers using Recharts.
 
+## 🧠 Machine Learning & Research Methodology
+The SafeSight engine is powered by a validated Predictive Analytics pipeline. The complete research, including model selection and diagnostic metrics, is documented in the /Misc/SafeSight_Model_Validation.ipynb notebook.
 
 ## Final Project Roadmap
 [ ] Phase 4 (Final): Implementation of WorkSafeBC Form 7 automated document generation.
