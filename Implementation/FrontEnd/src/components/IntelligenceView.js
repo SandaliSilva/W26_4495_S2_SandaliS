@@ -6,25 +6,27 @@ import {
     CartesianGrid 
 } from 'recharts';
 
-// 🏨 Refined Fairmont Palette for Data Clarity
 const FAIRMONT_GOLD = '#C5A059';
 const FAIRMONT_CHARCOAL = '#2D2D2D';
-const SAFE_GREEN = '#7FB069'; // Softer, positive green for "Stable"
+const SAFE_GREEN = '#7FB069'; 
 const DANGER_RED = '#96281B';
 const SOFT_BRONZE = '#A68966';
 
-// Map colors to status for instant recognition
 const STATUS_COLORS = { 
     High: DANGER_RED, 
     Elevated: FAIRMONT_GOLD, 
     Stable: SAFE_GREEN 
 };
 
-// Distinct colors for the Pie Chart slices
 const PIE_COLORS = [FAIRMONT_CHARCOAL, FAIRMONT_GOLD, SOFT_BRONZE, '#5D6D7E', '#AEB6BF'];
 
 const IntelligenceView = ({ data, aiPredictions }) => {
     if (!data) return null;
+
+    // 1. Sort the department data descending by total for the Bar Chart
+    const sortedDeptData = Array.isArray(data.departmentData) 
+        ? [...data.departmentData].sort((a, b) => (b.total || 0) - (a.total || 0))
+        : [];
 
     const cardStyle = { 
         background: '#fff', 
@@ -49,11 +51,11 @@ const IntelligenceView = ({ data, aiPredictions }) => {
         <div style={{ animation: 'fadeIn 0.8s ease-out', paddingBottom: '40px', background: '#fcfcfc', padding: '20px' }}>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '25px', marginBottom: '30px' }}>
-                {/* 1. Risk Velocity with clear Legend */}
+                {/* 1. Risk Velocity - Legend Removed & Top Cleaned */}
                 <div style={cardStyle}>
                     <h3 style={headerStyle}>Risk Velocity (Historical Trend)</h3>
                     <ResponsiveContainer width="100%" height={250}>
-                        <AreaChart data={data.trendData}>
+                        <AreaChart data={data.trendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={FAIRMONT_GOLD} stopOpacity={0.2}/>
@@ -67,13 +69,12 @@ const IntelligenceView = ({ data, aiPredictions }) => {
                                 contentStyle={{border: `1px solid ${FAIRMONT_GOLD}`, borderRadius: '0'}}
                                 formatter={(value) => [value, "Total Incidents"]}
                             />
-                            <Legend verticalAlign="top" align="right" />
+                            {/* Legend Removed as requested */}
                             <Area name="Incident Volume" type="monotone" dataKey="value" stroke={FAIRMONT_GOLD} fillOpacity={1} fill="url(#colorValue)" strokeWidth={2} />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
 
-                {/* 2. Pie Chart with Distinct Colors */}
                 <div style={cardStyle}>
                     <h3 style={headerStyle}>Severity Mix</h3>
                     <ResponsiveContainer width="100%" height={250}>
@@ -84,41 +85,41 @@ const IntelligenceView = ({ data, aiPredictions }) => {
                                 ))}
                             </Pie>
                             <Tooltip />
-                            <Legend verticalAlign="bottom" iconType="circle" />
+                            <Legend verticalAlign="bottom" iconType="circle" wrapperStyle={{fontSize: '11px'}} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px', marginBottom: '30px' }}>
+                {/* 2. Department Profile - Sorted Descending with No Overlap */}
                 <div style={cardStyle}>
-    <h3 style={headerStyle}>Department Risk Profile</h3>
-    <ResponsiveContainer width="100%" height={350}>
-        <BarChart 
-            data={data.departmentData} 
-            layout="vertical" 
-            margin={{ left: 50, right: 30 }}
-        >
-            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
-            <XAxis type="number" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
-            <YAxis 
-                dataKey="name" 
-                type="category" 
-                width={120} 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fontSize: 11, fill: FAIRMONT_CHARCOAL, fontWeight: '600'}} 
-            />
-            <Tooltip cursor={{fill: '#f5f5f5'}} />
-            <Legend verticalAlign="top" align="right" iconType="rect" />
+                    <h3 style={headerStyle}>Department Risk Profile</h3>
+                    <ResponsiveContainer width="100%" height={350}>
+                        <BarChart 
+                            data={sortedDeptData} 
+                            layout="vertical" 
+                            margin={{ left: 30, right: 30 }}
+                        >
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#eee" />
+                            <XAxis type="number" axisLine={false} tickLine={false} tick={{fontSize: 11}} />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                width={140} 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 11, fill: FAIRMONT_CHARCOAL, fontWeight: '600'}} 
+                            />
+                            <Tooltip cursor={{fill: '#f5f5f5'}} />
+                            <Legend verticalAlign="top" align="right" iconType="rect" wrapperStyle={{fontSize: '11px', paddingBottom: '10px'}} />
 
-            {/* 🎨 THE COLOR FIX: Mapping bars to Severity Status */}
-            <Bar name="Critical/High" dataKey="High" stackId="a" fill={DANGER_RED} barSize={20} />
-            <Bar name="Medium/Elevated" dataKey="Medium" stackId="a" fill={FAIRMONT_GOLD} />
-            <Bar name="Low/Stable" dataKey="Low" stackId="a" fill={SAFE_GREEN} radius={[0, 4, 4, 0]} />
-        </BarChart>
-    </ResponsiveContainer>
-</div>
+                            <Bar name="Critical/High" dataKey="High" stackId="a" fill={DANGER_RED} barSize={20} />
+                            <Bar name="Medium/Elevated" dataKey="Medium" stackId="a" fill={FAIRMONT_GOLD} />
+                            <Bar name="Low/Stable" dataKey="Low" stackId="a" fill={SAFE_GREEN} radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
 
                 <div style={cardStyle}>
                     <h3 style={headerStyle}>Safety Profile Radar</h3>
@@ -128,24 +129,25 @@ const IntelligenceView = ({ data, aiPredictions }) => {
                             <PolarAngleAxis dataKey="name" tick={{fontSize: 10}} />
                             <PolarRadiusAxis angle={30} domain={[0, 'auto']} />
                             <Radar name="Total Incidents" dataKey="total" stroke={FAIRMONT_GOLD} fill={FAIRMONT_GOLD} fillOpacity={0.4} />
+                            <Tooltip />
                         </RadarChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
-            {/* AI Section with Logical Colors */}
-            <h3 style={{ ...headerStyle, borderLeft: 'none', borderBottom: `2px solid ${FAIRMONT_GOLD}`, display: 'inline-block' }}>
+            {/* 3. AI Predictive Analysis Section */}
+            <h3 style={{ ...headerStyle, borderLeft: 'none', borderBottom: `2px solid ${FAIRMONT_GOLD}`, display: 'inline-block', marginBottom: '15px' }}>
                 SafeSight AI: 30-Day Predictive Analysis
             </h3>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '25px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginTop: '10px' }}>
                 {aiPredictions.map((pred, i) => (
                     <div key={i} style={{ 
                         ...cardStyle,
                         borderTop: `6px solid ${STATUS_COLORS[pred.risk_probability]}`,
                         borderRadius: '12px'
                     }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <strong style={{ fontSize: '18px', color: FAIRMONT_CHARCOAL }}>{pred.department}</strong>
                             <span style={{ 
                                 background: pred.risk_probability === 'High' ? '#fdeaea' : pred.risk_probability === 'Elevated' ? '#fff3e0' : '#e8f5e9',
@@ -156,9 +158,9 @@ const IntelligenceView = ({ data, aiPredictions }) => {
                             </span>
                         </div>
 
-                        <div style={{ margin: '20px 0' }}>
+                        <div style={{ margin: '18px 0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginBottom: '5px' }}>
-                                <span>Prediction Confidence</span>
+                                <span style={{ color: '#7f8c8d' }}>Prediction Confidence</span>
                                 <strong>{pred.confidence}</strong>
                             </div>
                             <div style={{ background: '#f0f2f5', height: '8px', borderRadius: '10px' }}>
@@ -168,10 +170,16 @@ const IntelligenceView = ({ data, aiPredictions }) => {
                                     height: '100%', borderRadius: '10px'
                                 }} />
                             </div>
+                            {/* Optional: Model Accuracy Badge */}
+                            {pred.accuracy_score && (
+                                <div style={{ fontSize: '10px', color: '#bdc3c7', marginTop: '8px', textAlign: 'right' }}>
+                                    Model Accuracy: {pred.accuracy_score}
+                                </div>
+                            )}
                         </div>
 
-                        <p style={{ fontSize: '13px', color: '#34495e', background: '#f8f9fa', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${STATUS_COLORS[pred.risk_probability]}` }}>
-                            <strong>Action:</strong> {pred.recommendation}
+                        <p style={{ fontSize: '13px', color: '#34495e', background: '#f8f9fa', padding: '12px', borderRadius: '8px', borderLeft: `4px solid ${STATUS_COLORS[pred.risk_probability]}`, lineHeight: '1.5' }}>
+                            <strong>Strategic Action:</strong> {pred.recommendation}
                         </p>
                     </div>
                 ))}
