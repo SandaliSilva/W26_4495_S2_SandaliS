@@ -57,19 +57,20 @@ function Dashboard({ role }) {
         >
             <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
                 
-                {/* HR ONLY BUTTON */}
-                {userRole === 'hr' && (
-                    <button 
-                        onClick={() => setView('ops')}
-                        style={{ 
-                            ...tabBtnStyle, 
-                            background: view === 'ops' ? '#1a2a3a' : '#f4f7f6',
-                            color: view === 'ops' ? '#fff' : '#7f8c8d',
-                        }}
-                    >
-                        📋 Operations
-                    </button>
-                )}
+                {/* STRATEGY: 
+                  We let Managers see the 'Operations' TAB BUTTON now, 
+                  so they can actually click into it to see their follow-ups.
+                */}
+                <button 
+                    onClick={() => setView('ops')}
+                    style={{ 
+                        ...tabBtnStyle, 
+                        background: view === 'ops' ? '#1a2a3a' : '#f4f7f6',
+                        color: view === 'ops' ? '#fff' : '#7f8c8d',
+                    }}
+                >
+                    📋 Operations
+                </button>
 
                 <button 
                     onClick={() => setView('intel')}
@@ -83,7 +84,9 @@ function Dashboard({ role }) {
                 </button>
             </div>
 
-            {view === 'ops' && userRole === 'hr' ? (
+            {/* --- THE UPDATED GATE --- */}
+            {/* We now allow the view to be 'ops' regardless of the role */}
+            {view === 'ops' ? (
                 <OperationalView data={data} userRole={userRole} />
             ) : (
                 <IntelligenceView data={data} aiPredictions={aiPredictions} />
