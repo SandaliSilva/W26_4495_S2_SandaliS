@@ -10,11 +10,28 @@ import Prediction from './components/Prediction';
 import WorkSafeBCExport from './components/WorkSafeBCExport';
 
 function App() {
-  const [user, setUser] = useState(null); // null, 'manager', or 'hr'
+  // Initialize user from localStorage so they stay logged in on refresh
+  const [user, setUser] = useState(localStorage.getItem('userRole')); 
+
+  const handleLogin = (role) => {
+    localStorage.setItem('userRole', role); // Save for Dashboard.js to see
+    setUser(role);
+  };
 
   const logout = () => {
+    localStorage.removeItem('userRole'); // Clear on logout
     setUser(null);
   };
+
+  // ... inside your return/Routes ...
+  <Route path="/login" element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/dashboard" />} />
+
+// function App() {
+//   const [user, setUser] = useState(null); // null, 'manager', or 'hr'
+
+//   const logout = () => {
+//     setUser(null);
+//   };
 
   // Professional Navigation Styling
   const navStyle = {
