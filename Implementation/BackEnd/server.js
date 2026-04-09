@@ -76,8 +76,11 @@ app.get('/api/dashboard-stats', async (req, res) => {
             ORDER BY MONTH(incident_datetime) ASC`;
 
         // Query E: Recent Observations (Expanded to 15 for Operational View)
+        // Query E: Recent Observations (FIXED for Hover Tooltips)
         const recentQuery = `
-            SELECT incident_id, department, incident_type, severity, status 
+            SELECT 
+                incident_id, department, work_area, shift, 
+                incident_type, severity, status, description, ppe_worn 
             FROM incidents 
             ORDER BY incident_datetime DESC 
             LIMIT 15`;
