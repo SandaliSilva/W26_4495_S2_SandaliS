@@ -57,7 +57,7 @@ exports.getDashboardStats = async (req, res) => {
             severityData: severityRows,
             trendData: trendRows,
             departmentData: deptRows,
-            recentIncidents: recentIncidents // Now the frontend will receive the actual list!
+            recentIncidents: recentIncidents 
         });
 
     } catch (error) {
