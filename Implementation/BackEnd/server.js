@@ -192,16 +192,22 @@ app.get('/api/reports/export-excel', async (req, res) => {
 });
 
 // --- 7. Update Incident Status ---
+// --- 7. Update Incident Status & Save HR Action (FIXED) ---
 app.patch('/api/incidents/:id/status', async (req, res) => {
     const { id } = req.params;
-    const { status } = req.body; 
+    const { status, hr_action } = req.body; // Pick up both from the frontend
 
+    const sql = "UPDATE incidents SET status = ?, hr_action = ? WHERE incident_id = ?";
+    
     try {
-        await db.query("UPDATE incidents SET status = ? WHERE incident_id = ?", [status, id]);
-        res.json({ message: `Incident #${id} marked as ${status}` });
+        // We pass status AND hr_action to the database
+        await db.query(sql, [status, hr_action, id]);
+        
+        console.log(`✅ Incident #${id} updated: Status=${status}, Action=${hr_action}`);
+        res.json({ message: `Incident #${id} resolved and action logged.` });
     } catch (err) {
-        console.error("❌ Update Error:", err);
-        res.status(500).json({ error: "Failed to update incident status" });
+        console.error("❌ Database Update Error:", err);
+        res.status(500).json({ error: "Failed to update incident in database" });
     }
 });
 

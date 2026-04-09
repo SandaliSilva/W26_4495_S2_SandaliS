@@ -1,13 +1,11 @@
 const PDFDocument = require('pdfkit');
 const path = require('path');
 
-// Change: Added 'async' here
 exports.generateWSBCReport = async (req, res) => {
     const incidentId = req.params.id;
     const db = req.db;
 
     try {
-        // Change: Use await instead of the callback function
         const [results] = await db.query('SELECT * FROM incidents WHERE incident_id = ?', [incidentId]);
         
         if (!results || results.length === 0) {
@@ -18,88 +16,189 @@ exports.generateWSBCReport = async (req, res) => {
         const doc = new PDFDocument({ margin: 40, size: 'A4' });
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=SafeSight_EIIR_${incidentId}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=SafeSight_Report_${incidentId}.pdf`);
         doc.pipe(res);
 
-        // --- 1. CORPORATE HEADER WITH LOGO ---
-        doc.rect(0, 0, 612, 85).fill('#1a2a3a'); // Dark Navy bar
-        
+        // --- 1. HEADER ---
+        doc.rect(0, 0, 612, 85).fill('#1a2a3a'); 
         try {
             const logoPath = path.join(__dirname, '..', 'assets', 'Fairmont Waterfront.png');
             doc.image(logoPath, 40, 15, { width: 140 }); 
         } catch (err) {
             doc.fillColor('#ffffff').fontSize(12).text('FAIRMONT WATERFRONT', 40, 35);
         }
+        doc.fillColor('#d4af37').fontSize(18).text('SAFESIGHT', 400, 25, { align: 'right' });
+        doc.fillColor('#ffffff').fontSize(10).text('OFFICIAL INCIDENT REPORT', 400, 50, { align: 'right' });
 
-        doc.fillColor('#d4af37').fontSize(18).text('SAFESIGHT', 400, 25, { align: 'right', characterSpacing: 2 });
-        doc.fillColor('#ffffff').fontSize(8).text('INTELLIGENCE & COMPLIANCE', 400, 48, { align: 'right' });
-        doc.fontSize(10).text('OFFICIAL INCIDENT REPORT', 400, 60, { align: 'right' });
-
-        doc.moveDown(5);
-
-        // --- 2. DATA GRID HELPER ---
         const drawField = (label, value, x, y, width) => {
             doc.fillColor('#7f8c8d').fontSize(8).text(label.toUpperCase(), x, y);
             doc.fillColor('#2c3e50').fontSize(10).text(String(value || 'N/A'), x, y + 12, { width: width });
         };
 
-        // --- 3. SECTION I: GENERAL INFORMATION ---
+        // --- 2. SECTION I: GENERAL INFO ---
         doc.fillColor('#1a2a3a').fontSize(13).text('I. GENERAL INFORMATION', 40, 140);
         doc.moveTo(40, 155).lineTo(560, 155).lineWidth(1).stroke('#d4af37');
 
         drawField('Incident ID', `#SIGHT-${incident.incident_id}`, 40, 170, 100);
         drawField('Department', incident.department, 160, 170, 150);
         drawField('Work Area', incident.work_area, 360, 170, 180);
-
         drawField('Date & Time', new Date(incident.incident_datetime).toLocaleString(), 40, 210, 200);
         drawField('Shift', incident.shift, 250, 210, 100);
         drawField('Severity', incident.severity, 400, 210, 100);
 
-        // --- 4. SECTION II: INCIDENT NARRATIVE ---
+        // --- 3. SECTION II: NARRATIVE ---
         doc.fillColor('#1a2a3a').fontSize(13).text('II. INCIDENT NARRATIVE', 40, 260);
         doc.moveTo(40, 275).lineTo(560, 275).stroke('#d4af37');
-
         doc.rect(40, 290, 520, 80).fill('#f9f9f9').stroke('#ecf0f1');
         doc.fillColor('#2c3e50').fontSize(10).text(incident.description || "No narrative provided.", 50, 305, { width: 500, align: 'justify' });
 
-        // --- 5. SECTION III: EVIDENCE & SAFETY CONTROLS ---
+        // --- 4. SECTION III: EVIDENCE & CONTROLS ---
         doc.fillColor('#1a2a3a').fontSize(13).text('III. EVIDENCE & SAFETY CONTROLS', 40, 390);
         doc.moveTo(40, 405).lineTo(560, 405).stroke('#d4af37');
 
-        drawField('Witnesses Identified', 'No witnesses recorded at time of entry', 40, 420, 300);
+        // FIXED WITNESS LOGIC: Shows root cause or status notes
+        drawField('Root Cause Analysis', incident.root_cause || 'Under Investigation', 40, 420, 300);
 
-        const ppeColor = incident.ppe_worn ? '#27ae60' : '#c0392b';
-        const hospColor = incident.hospitalized ? '#c0392b' : '#27ae60';
+        // FIXED PPE LOGIC: Explicitly checking for 'Yes' or 1
+        const isPPEWorn = String(incident.ppe_worn).toLowerCase() === 'yes' || incident.ppe_worn === 1;
+        const isHosp = incident.hospitalized === 1 || String(incident.hospitalized).toLowerCase() === 'yes';
+
+        const ppeColor = isPPEWorn ? '#27ae60' : '#c0392b';
+        const hospColor = isHosp ? '#c0392b' : '#27ae60';
 
         doc.rect(360, 420, 90, 22).fill(ppeColor);
-        doc.fillColor('#ffffff').fontSize(7).text(`PPE WORN: ${incident.ppe_worn ? 'YES' : 'NO'}`, 365, 428, { width: 80, align: 'center' });
+        doc.fillColor('#ffffff').fontSize(7).text(`PPE WORN: ${isPPEWorn ? 'YES' : 'NO'}`, 365, 428, { width: 80, align: 'center' });
 
         doc.rect(460, 420, 100, 22).fill(hospColor);
-        doc.fillColor('#ffffff').fontSize(7).text(`HOSPITAL: ${incident.hospitalized ? 'YES' : 'NO'}`, 465, 428, { width: 90, align: 'center' });
+        doc.fillColor('#ffffff').fontSize(7).text(`HOSPITAL: ${isHosp ? 'YES' : 'NO'}`, 465, 428, { width: 90, align: 'center' });
 
-        // --- 6. SECTION IV: CORRECTIVE ACTIONS ---
-        doc.fillColor('#1a2a3a').fontSize(13).text('IV. CORRECTIVE ACTIONS & FOLLOW-UP', 40, 470);
+        // --- 5. SECTION IV: HR CORRECTIVE ACTIONS (UPDATED) ---
+        doc.fillColor('#1a2a3a').fontSize(13).text('IV. HR CORRECTIVE ACTIONS & FOLLOW-UP', 40, 470);
         doc.moveTo(40, 485).lineTo(560, 485).stroke('#d4af37');
 
-        doc.fillColor('#7f8c8d').fontSize(9);
-        doc.text('▢ Hazard eliminated  ▢ Staff retraining  ▢ Equipment repaired  ▢ PPE requirement updated', 40, 500);
+        doc.fillColor('#7f8c8d').fontSize(8).text('OFFICIAL HR REVIEW NOTES:', 40, 500);
+        
+        // This pulls the text you typed in the Operational View!
+        doc.fillColor('#2c3e50').fontSize(10).text(
+            incident.hr_action || "Awaiting final HR administrative review and corrective action logging.", 
+            40, 515, { width: 520, oblique: !incident.hr_action }
+        );
 
-        drawField('Root Cause Analysis', incident.root_cause, 40, 525, 500);
-
-        // --- 7. SIGNATURE BLOCK ---
-        doc.fillColor('#2c3e50').fontSize(10).text('Authorized Signature:', 40, 620);
+        // --- 6. SIGNATURE ---
+        doc.fillColor('#2c3e50').fontSize(10).text('Authorized HR Signature:', 40, 620);
         doc.moveTo(40, 650).lineTo(250, 650).stroke('#7f8c8d');
-        doc.fontSize(8).text('Department Manager / Safety Officer', 40, 655);
-
-        // --- 8. FOOTER ---
-        doc.fillColor('#95a5a6').fontSize(7)
-           .text('SafeSight Intelligence | Fairmont Waterfront Deployment Prototype', 40, 760, { align: 'center' });
+        doc.fontSize(8).text('SafeSight Compliance Officer', 40, 655);
 
         doc.end();
 
     } catch (err) {
-        // Catch any database errors
-        console.error("❌ PDF Generation Error:", err);
+        console.error("❌ PDF Error:", err);
         res.status(500).send("Error generating PDF");
     }
 };
+
+// const PDFDocument = require('pdfkit');
+// const path = require('path');
+
+// // Change: Added 'async' here
+// exports.generateWSBCReport = async (req, res) => {
+//     const incidentId = req.params.id;
+//     const db = req.db;
+
+//     try {
+//         // Change: Use await instead of the callback function
+//         const [results] = await db.query('SELECT * FROM incidents WHERE incident_id = ?', [incidentId]);
+        
+//         if (!results || results.length === 0) {
+//             return res.status(404).send("Incident not found");
+//         }
+
+//         const incident = results[0];
+//         const doc = new PDFDocument({ margin: 40, size: 'A4' });
+
+//         res.setHeader('Content-Type', 'application/pdf');
+//         res.setHeader('Content-Disposition', `attachment; filename=SafeSight_EIIR_${incidentId}.pdf`);
+//         doc.pipe(res);
+
+//         // --- 1. CORPORATE HEADER WITH LOGO ---
+//         doc.rect(0, 0, 612, 85).fill('#1a2a3a'); // Dark Navy bar
+        
+//         try {
+//             const logoPath = path.join(__dirname, '..', 'assets', 'Fairmont Waterfront.png');
+//             doc.image(logoPath, 40, 15, { width: 140 }); 
+//         } catch (err) {
+//             doc.fillColor('#ffffff').fontSize(12).text('FAIRMONT WATERFRONT', 40, 35);
+//         }
+
+//         doc.fillColor('#d4af37').fontSize(18).text('SAFESIGHT', 400, 25, { align: 'right', characterSpacing: 2 });
+//         doc.fillColor('#ffffff').fontSize(8).text('INTELLIGENCE & COMPLIANCE', 400, 48, { align: 'right' });
+//         doc.fontSize(10).text('OFFICIAL INCIDENT REPORT', 400, 60, { align: 'right' });
+
+//         doc.moveDown(5);
+
+//         // --- 2. DATA GRID HELPER ---
+//         const drawField = (label, value, x, y, width) => {
+//             doc.fillColor('#7f8c8d').fontSize(8).text(label.toUpperCase(), x, y);
+//             doc.fillColor('#2c3e50').fontSize(10).text(String(value || 'N/A'), x, y + 12, { width: width });
+//         };
+
+//         // --- 3. SECTION I: GENERAL INFORMATION ---
+//         doc.fillColor('#1a2a3a').fontSize(13).text('I. GENERAL INFORMATION', 40, 140);
+//         doc.moveTo(40, 155).lineTo(560, 155).lineWidth(1).stroke('#d4af37');
+
+//         drawField('Incident ID', `#SIGHT-${incident.incident_id}`, 40, 170, 100);
+//         drawField('Department', incident.department, 160, 170, 150);
+//         drawField('Work Area', incident.work_area, 360, 170, 180);
+
+//         drawField('Date & Time', new Date(incident.incident_datetime).toLocaleString(), 40, 210, 200);
+//         drawField('Shift', incident.shift, 250, 210, 100);
+//         drawField('Severity', incident.severity, 400, 210, 100);
+
+//         // --- 4. SECTION II: INCIDENT NARRATIVE ---
+//         doc.fillColor('#1a2a3a').fontSize(13).text('II. INCIDENT NARRATIVE', 40, 260);
+//         doc.moveTo(40, 275).lineTo(560, 275).stroke('#d4af37');
+
+//         doc.rect(40, 290, 520, 80).fill('#f9f9f9').stroke('#ecf0f1');
+//         doc.fillColor('#2c3e50').fontSize(10).text(incident.description || "No narrative provided.", 50, 305, { width: 500, align: 'justify' });
+
+//         // --- 5. SECTION III: EVIDENCE & SAFETY CONTROLS ---
+//         doc.fillColor('#1a2a3a').fontSize(13).text('III. EVIDENCE & SAFETY CONTROLS', 40, 390);
+//         doc.moveTo(40, 405).lineTo(560, 405).stroke('#d4af37');
+
+//         drawField('Witnesses Identified', 'No witnesses recorded at time of entry', 40, 420, 300);
+
+//         const ppeColor = incident.ppe_worn ? '#27ae60' : '#c0392b';
+//         const hospColor = incident.hospitalized ? '#c0392b' : '#27ae60';
+
+//         doc.rect(360, 420, 90, 22).fill(ppeColor);
+//         doc.fillColor('#ffffff').fontSize(7).text(`PPE WORN: ${incident.ppe_worn ? 'YES' : 'NO'}`, 365, 428, { width: 80, align: 'center' });
+
+//         doc.rect(460, 420, 100, 22).fill(hospColor);
+//         doc.fillColor('#ffffff').fontSize(7).text(`HOSPITAL: ${incident.hospitalized ? 'YES' : 'NO'}`, 465, 428, { width: 90, align: 'center' });
+
+//         // --- 6. SECTION IV: CORRECTIVE ACTIONS ---
+//         doc.fillColor('#1a2a3a').fontSize(13).text('IV. CORRECTIVE ACTIONS & FOLLOW-UP', 40, 470);
+//         doc.moveTo(40, 485).lineTo(560, 485).stroke('#d4af37');
+
+//         doc.fillColor('#7f8c8d').fontSize(9);
+//         doc.text('▢ Hazard eliminated  ▢ Staff retraining  ▢ Equipment repaired  ▢ PPE requirement updated', 40, 500);
+
+//         drawField('Root Cause Analysis', incident.root_cause, 40, 525, 500);
+
+//         // --- 7. SIGNATURE BLOCK ---
+//         doc.fillColor('#2c3e50').fontSize(10).text('Authorized Signature:', 40, 620);
+//         doc.moveTo(40, 650).lineTo(250, 650).stroke('#7f8c8d');
+//         doc.fontSize(8).text('Department Manager / Safety Officer', 40, 655);
+
+//         // --- 8. FOOTER ---
+//         doc.fillColor('#95a5a6').fontSize(7)
+//            .text('SafeSight Intelligence | Fairmont Waterfront Deployment Prototype', 40, 760, { align: 'center' });
+
+//         doc.end();
+
+//     } catch (err) {
+//         // Catch any database errors
+//         console.error("❌ PDF Generation Error:", err);
+//         res.status(500).send("Error generating PDF");
+//     }
+// };
